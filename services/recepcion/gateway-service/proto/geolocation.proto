@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package geolocation;
+
+// El servicio de geolocalización que enriquecerá el dato
+service GeolocationService {
+  rpc EnrichAlertData (AlertRequest) returns (EnrichedAlertResponse);
+}
+
+// Datos que envía el Gateway
+message AlertRequest {
+  string id = 1;
+  string gps = 2;
+  string timestamp = 3;
+  string type = 4;
+}
+
+// Datos enriquecidos que devuelve el MS de Geolocalización
+message EnrichedAlertResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
+  string gps = 4;
+  string timestamp = 5;
+  string type = 6;
+  string location_details = 7; // Dato extraído/enriquecido (ej. dirección, cuadrante, etc.)
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gateway-alert-service",
+  "version": "1.0.0",
+  "description": "Gateway microservice for MQTT ingestion and gRPC forwarding",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.x",
+    "@grpc/proto-loader": "^0.7.x",
+    "mqtt": "^5.3.x"
+  }
+}
