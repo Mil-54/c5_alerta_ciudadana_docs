@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C5 - Sistema Distribuido de Alerta Ciudadana</title>
+  <meta name="description" content="Centro de control táctico C5 de alta fidelidad para el monitoreo y gestión en tiempo real de alertas ciudadanas distribuidas.">
+  
+  <!-- Google Fonts para estética futurista y legibilidad de datos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet.js CSS para el mapa táctico -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Iconos Lucide (vía CDN para simplificar) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Estilos del Dashboard -->
+  <script type="module" crossorigin src="/assets/index-CqnDuV-J.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-m4ckXfw8.css">
+</head>
+<body>
+  <!-- Panel de Fondo Grid Decorativo -->
+  <div class="cyber-grid-overlay" aria-hidden="true"></div>
+  <div class="scanline" aria-hidden="true"></div>
+
+  <!-- Contenedor Principal (Dashboard Bento Box) -->
+  <div class="dashboard-container">
+    
+    <!-- HEADER DEL CENTRO DE COMANDO -->
+    <header class="dashboard-header border-neon-glow">
+      <div class="header-logo">
+        <div class="neon-indicator blink-green" id="system-status-indicator"></div>
+        <div class="title-wrapper">
+          <h1 class="tactical-title">C5 TACTICAL CONTROL CENTER</h1>
+          <span class="subtitle">SISTEMA DISTRIBUIDO DE ALERTA CIUDADANA</span>
+        </div>
+      </div>
+      
+      <!-- Panel de Control del Servidor de WebSockets (Simulación) -->
+      <div class="header-controls">
+        <div class="websocket-badge" id="ws-status-badge">
+          <i data-lucide="radio" class="icon-pulse"></i>
+          <span id="ws-status-text">WS DISCONNECTED</span>
+        </div>
+        <button class="btn btn-neon-blue" id="btn-toggle-simulation">
+          <i data-lucide="play"></i>
+          <span>INICIAR SIMULACIÓN</span>
+        </button>
+        <button class="btn btn-danger" id="btn-trigger-panic" title="Simular Emergencia Crítica Directa">
+          <i data-lucide="alert-octagon"></i>
+          <span>PANIC TRIGGER</span>
+        </button>
+      </div>
+
+      <!-- Reloj digital y métricas rápidas -->
+      <div class="header-clock">
+        <div class="clock-label">Huso Horario Local (GMT-6)</div>
+        <div class="clock-time" id="digital-clock">00:00:00</div>
+        <div class="clock-date" id="digital-date">11 JUN 2026</div>
+      </div>
+    </header>
+
+    <!-- CUERPO PRINCIPAL (Bento Grid Layout) -->
+    <main class="dashboard-grid">
+      
+      <!-- COLUMNA 1: ESTADÍSTICAS Y ANALÍTICAS RÁPIDAS (Bento Card Left) -->
+      <section class="bento-card col-stats border-neon-blue" aria-labelledby="stats-heading">
+        <div class="card-header">
+          <i data-lucide="bar-chart-3" class="text-neon-blue"></i>
+          <h2 id="stats-heading" class="card-title">MÉTRICAS TÁCTICAS</h2>
+          <span class="card-subtitle">Real-time Stats</span>
+        </div>
+        
+        <div class="card-body stats-container">
+          <!-- Tarjeta Stat: Alertas Activas -->
+          <div class="stat-box glow-red" id="stat-active-alerts">
+            <span class="stat-label">ALERTAS ACTIVAS</span>
+            <div class="stat-value text-neon-red" id="val-active-alerts">0</div>
+            <div class="stat-footer">
+              <span class="text-neon-red" id="pct-critical-alerts">0%</span>
+              <span class="sub-label">Críticas</span>
+            </div>
+          </div>
+          
+          <!-- Tarjeta Stat: Unidades Desplegadas -->
+          <div class="stat-box glow-yellow" id="stat-deployed-units">
+            <span class="stat-label">UNIDADES DESPLEGADAS</span>
+            <div class="stat-value text-neon-yellow" id="val-deployed-units">4</div>
+            <div class="stat-footer">
+              <span class="text-neon-yellow" id="val-available-units">8 dispon.</span>
+              <span class="sub-label">Flota total</span>
+            </div>
+          </div>
+          
+          <!-- Tarjeta Stat: Tiempo de Respuesta -->
+          <div class="stat-box glow-green" id="stat-response-time">
+            <span class="stat-label">TIEMPO RESP. PROM.</span>
+            <div class="stat-value text-neon-green" id="val-response-time">3.4 min</div>
+            <div class="stat-footer">
+              <span class="text-neon-green">-12% vs. ayer</span>
+              <span class="sub-label">Optimizado</span>
+            </div>
+          </div>
+
+          <!-- Gráfico de Incidentes por Hora -->
+          <div class="chart-wrapper">
+            <div class="chart-header">
+              <span class="chart-title">FLUJO DE INCIDENTES / HORA</span>
+              <span class="chart-value text-neon-blue" id="hourly-count">0/h</span>
+            </div>
+            <div class="canvas-container">
+              <canvas id="incident-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico de Distribución de Alertas por Categoría -->
+          <div class="chart-wrapper">
+            <div class="chart-header">
+              <span class="chart-title">ALERTAS POR PRIORIDAD</span>
+            </div>
+            <div class="canvas-container small-canvas">
+              <canvas id="priority-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMNA 2: MAPA DE GEOLOCALIZACIÓN CENTRAL (Bento Card Center) -->
+      <section class="bento-card col-map border-neon-blue" aria-labelledby="map-heading">
+        <div class="card-header">
+          <i data-lucide="map-pin" class="text-neon-blue"></i>
+          <h2 id="map-heading" class="card-title">MAPA TÁCTICO DE GEOLOCALIZACIÓN</h2>
+          <div class="map-controls">
+            <span class="map-coordinates" id="current-map-view">MONITOR: 19.4326° N, 99.1332° W</span>
+            <button class="btn-icon" id="btn-center-map" title="Centrar Mapa">
+              <i data-lucide="crosshair"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body map-body-container">
+          <!-- Leaflet Map Element -->
+          <div id="tactical-map" class="map-content"></div>
+          
+          <!-- Capa de Interfaz Táctica HUD sobre el mapa -->
+          <div class="map-hud-overlay">
+            <div class="hud-box top-left">
+              <div class="hud-line"><strong>ZONA ACTIVA:</strong> ZONA METROPOLITANA</div>
+              <div class="hud-line"><strong>GRID ID:</strong> MX-C5-09</div>
+            </div>
+            <div class="hud-box bottom-right">
+              <div class="hud-legend">
+                <div class="legend-item"><span class="legend-dot bg-neon-red"></span> CRÍTICA</div>
+                <div class="legend-item"><span class="legend-dot bg-neon-yellow"></span> ALTA</div>
+                <div class="legend-item"><span class="legend-dot bg-neon-blue"></span> SISTEMA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMNA 3: PANEL PRINCIPAL DE ALERTAS EN TIEMPO REAL (Bento Card Right) -->
+      <section class="bento-card col-feed border-neon-red" aria-labelledby="feed-heading">
+        <div class="card-header">
+          <div class="card-title-container">
+            <i data-lucide="activity" class="text-neon-red icon-pulse"></i>
+            <h2 id="feed-heading" class="card-title text-neon-red">ALERTAS EN TIEMPO REAL</h2>
+          </div>
+          <div class="alert-feed-count-badge" id="feed-count">0 ACTIVAS</div>
+        </div>
+        
+        <!-- Contenedor del Feed de Tarjetas -->
+        <div class="card-body alert-feed-wrapper scrollbar-custom" id="alerts-feed-container">
+          <!-- Empty State si no hay alertas -->
+          <div class="feed-empty-state" id="feed-empty-state">
+            <div class="radar-scan">
+              <div class="circle"></div>
+              <div class="line"></div>
+            </div>
+            <p class="empty-text">ESCANEAR RED DE DISPOSITIVOS...</p>
+            <p class="empty-subtext">No hay alertas activas en el distrito.</p>
+          </div>
+          
+          <!-- Las alertas activas se insertarán dinámicamente aquí -->
+        </div>
+      </section>
+
+      <!-- FILA INFERIOR: HISTORIAL Y AUDITORÍA DE INCIDENTES (Bento Card Full Width) -->
+      <section class="bento-card col-history border-neon-blue" aria-labelledby="history-heading">
+        <div class="card-header history-header-wrapper">
+          <div class="header-left">
+            <i data-lucide="database" class="text-neon-blue"></i>
+            <h2 id="history-heading" class="card-title">HISTORIAL Y AUDITORÍA DE INCIDENTES</h2>
+            <span class="card-subtitle">Registro de Incidencias Persistentes</span>
+          </div>
+          
+          <!-- Filtros de la Tabla -->
+          <div class="history-filters">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="search-input" placeholder="Buscar ESP32, Zona, ID...">
+            </div>
+            
+            <div class="filter-buttons">
+              <button class="btn-filter active" data-filter="ALL" id="filter-btn-all">TODOS</button>
+              <button class="btn-filter" data-filter="CRITICAL" id="filter-btn-critical">CRÍTICA</button>
+              <button class="btn-filter" data-filter="HIGH" id="filter-btn-high">ALTA</button>
+              <button class="btn-filter" data-filter="MEDIUM" id="filter-btn-medium">MEDIA</button>
+            </div>
+            
+            <button class="btn btn-neon-blue btn-sm" id="btn-clear-history">
+              <i data-lucide="trash-2"></i>
+              <span>LIMPIAR HISTORIAL</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body history-table-container scrollbar-custom">
+          <table class="tactical-table" id="history-table">
+            <thead>
+              <tr>
+                <th scope="col">ID ALERTA</th>
+                <th scope="col">TIMESTAMP</th>
+                <th scope="col">DISPOSITIVO (ESP32)</th>
+                <th scope="col">ZONA GEOGRÁFICA</th>
+                <th scope="col">COORDENADAS GPS</th>
+                <th scope="col">PRIORIDAD</th>
+                <th scope="col">ESTADO</th>
+                <th scope="col">TIEMPO RESOL.</th>
+                <th scope="col">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- El contenido del historial se cargará aquí dinámicamente -->
+            </tbody>
+          </table>
+          
+          <!-- Empty History State -->
+          <div class="table-empty-state" id="table-empty-state" style="display: none;">
+            <i data-lucide="folder-open"></i>
+            <p>No se encontraron registros en el historial de incidentes.</p>
+          </div>
+        </div>
+        
+        <!-- Paginación de la Tabla -->
+        <div class="table-pagination">
+          <span class="pagination-info" id="pagination-info">Mostrando registros 0-0 de 0</span>
+          <div class="pagination-controls">
+            <button class="btn-page" id="btn-prev-page" disabled>
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <div class="page-numbers" id="page-numbers-container">
+              <button class="btn-page active">1</button>
+            </div>
+            <button class="btn-page" id="btn-next-page" disabled>
+              <i data-lucide="chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    
+    <!-- FOOTER/CONSOLA DE EVENTOS DEL SISTEMA -->
+    <footer class="dashboard-footer">
+      <div class="footer-system-log">
+        <span class="log-title">SYS LOG:</span>
+        <div class="log-scroller" id="system-log-terminal">
+          <div class="log-entry text-neon-blue">[INFO] Sistema inicializado en modo simulación de red.</div>
+          <div class="log-entry text-neon-green">[INFO] Conectores de WebSocket mockeados listos en el puerto virtual :8080.</div>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>OPERADOR: C5_ADMIN_01</span>
+        <span>VERSION: V3.9.54</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- MODAL DE ASIGNACIÓN DE UNIDADES -->
+  <div class="tactical-modal-overlay" id="dispatch-modal">
+    <div class="tactical-modal border-neon-blue">
+      <div class="modal-header">
+        <h3><i data-lucide="shield-alert" class="text-neon-yellow"></i> DESPLEGAR UNIDAD DE RESPUESTA</h3>
+        <button class="btn-close-modal" id="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-brief" id="modal-alert-brief">
+          <!-- Resumen de alerta cargado por JS -->
+        </div>
+        
+        <form class="dispatch-form" id="dispatch-form" onsubmit="event.preventDefault();">
+          <div class="form-group">
+            <label for="select-unit">SELECCIONAR UNIDAD DISPONIBLE:</label>
+            <select id="select-unit" class="tactical-select">
+              <option value="SECTOR-01">Patrulla Sector 01 (Zona Centro) - Disponible</option>
+              <option value="SECTOR-04">Patrulla Sector 04 (Zona Norte) - Disponible</option>
+              <option value="MEDIC-02">Ambulancia Unidad 02 (Zona Sur) - Disponible</option>
+              <option value="FIRE-01">Bomberos Estación Central - Disponible</option>
+              <option value="TACTICAL-09">Fuerzas Especiales Sector 09 - Disponible</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="dispatch-notes">NOTAS DE DESPACHO / INSTRUCCIONES:</label>
+            <textarea id="dispatch-notes" class="tactical-textarea" placeholder="Escribe instrucciones tácticas para la unidad desplegada..."></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-dispatch">CANCELAR</button>
+            <button type="submit" class="btn btn-neon-yellow" id="btn-confirm-dispatch">
+              <i data-lucide="navigation"></i> DESPLEGAR UNIDAD
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet.js script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Chart.js para las analíticas neón -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lógica modular de la aplicación -->
+</body>
+</html>
